@@ -212,6 +212,18 @@ ngTouch.directive('ngClick', ['$parse', '$timeout', '$rootElement',
   var lastPreventedTime;
   var touchCoordinates;
 
+  function getCoordinates(event) {
+    var touches = event.touches && event.touches.length ? event.touches : [event];
+    var e = (event.changedTouches && event.changedTouches[0]) ||
+        (event.originalEvent && event.originalEvent.changedTouches &&
+            event.originalEvent.changedTouches[0]) ||
+        touches[0].originalEvent || touches[0];
+
+    return {
+      x: e.clientX,
+      y: e.clientY
+    };
+  }
 
   // TAP EVENTS AND GHOST CLICKS
   //
@@ -277,9 +289,9 @@ ngTouch.directive('ngClick', ['$parse', '$timeout', '$rootElement',
       return; // Too old.
     }
 
-    var touches = event.touches && event.touches.length ? event.touches : [event];
-    var x = touches[0].clientX;
-    var y = touches[0].clientY;
+    var coords = getCoordinates(event);
+    var x = coords.clientX;
+    var y = coords.clientY;
     // Work around desktop Webkit quirk where clicking a label will fire two clicks (on the label
     // and on the input element). Depending on the exact browser, this second click we don't want
     // to bust has either (0,0) or negative coordinates.
@@ -306,9 +318,9 @@ ngTouch.directive('ngClick', ['$parse', '$timeout', '$rootElement',
   // Global touchstart handler that creates an allowable region for a click event.
   // This allowable region can be removed by preventGhostClick if we want to bust it.
   function onTouchStart(event) {
-    var touches = event.touches && event.touches.length ? event.touches : [event];
-    var x = touches[0].clientX;
-    var y = touches[0].clientY;
+    var coords = getCoordinates(event);
+    var x = coords.clientX;
+    var y = coords.clientY;
     touchCoordinates.push(x, y);
 
     $timeout(function() {
@@ -362,10 +374,9 @@ ngTouch.directive('ngClick', ['$parse', '$timeout', '$rootElement',
 
       startTime = Date.now();
 
-      var touches = event.touches && event.touches.length ? event.touches : [event];
-      var e = touches[0].originalEvent || touches[0];
-      touchStartX = e.clientX;
-      touchStartY = e.clientY;
+      var coords = getCoordinates(event);
+      touchStartX = coords.clientX;
+      touchStartY = coords.clientY;
     });
 
     element.on('touchmove', function(event) {
@@ -379,11 +390,9 @@ ngTouch.directive('ngClick', ['$parse', '$timeout', '$rootElement',
     element.on('touchend', function(event) {
       var diff = Date.now() - startTime;
 
-      var touches = (event.changedTouches && event.changedTouches.length) ? event.changedTouches :
-          ((event.touches && event.touches.length) ? event.touches : [event]);
-      var e = touches[0].originalEvent || touches[0];
-      var x = e.clientX;
-      var y = e.clientY;
+      var coords = getCoordinates(event);
+      var x = coords.clientX;
+      var y = coords.clientY;
       var dist = Math.sqrt( Math.pow(x - touchStartX, 2) + Math.pow(y - touchStartY, 2) );
 
       if (tapping && diff < TAP_DURATION && dist < MOVE_TOLERANCE) {
